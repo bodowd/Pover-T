@@ -1,17 +1,16 @@
 import pandas as pd
 import numpy as np
 
-import lightgbm as lgb
+from sklearn.linear_model import LogisticRegression
 
 import PoverTHelperTools
 
 
-SUB_NAME = 'lgb_50est_dropNaN_drplowdiversity_trsfmHighSkew.csv'
+SUB_NAME = 'LR_dropNaN_drpCorrFeats_drplowdiversity_trsfmHighSkew.csv'
 
 # Load data
 hhold_a_train, hhold_b_train, hhold_c_train = PoverTHelperTools.load_hhold_train()
 hhold_a_test, hhold_b_test, hhold_c_test = PoverTHelperTools.load_hhold_test()
-
 ## Try keep only important features. Got idea from forum. Didn't work well. Need to revisit the plot_importance. Mightve only looked at the top features from the LAST CV KFold
 # hhold_a_train = hhold_a_train[['TiwRslOh', 'GIMIxlmv', 'nEsgxvAq', 'IZFarbPw', 'qgxmqJKa', 'wEbmsuJO', 'QyBloWXZ', 'ZnBLVaqz', 'poor', 'country']]
 # hhold_b_train=hhold_b_train[['wJthinfa', 'lCKzGQow', 'toNGbjGF', 'xjTIGPgB', 'BjWMmVMX', 'RcpCILQM','poor', 'country' ]]
@@ -33,19 +32,18 @@ print('Dropped NaN columns in hhold_b. Shape is now: ', hhold_b_train.shape)
 
 # Drop correlated features: 0.22487 on LB. Didn't improve from dropping NaN, slightly worse than just dropping NaN. Removed features that correlate with others > 0.5
 # Try removing less features. Removed features that are >0.7 correlated. Did about the same. Saved GIwNbAsH even though it's correlated to other things because it's distribution looks pretty good.
-# Worse on LB: 0.35951
-# print('Before dropping correlated features in B: ', hhold_b_train.shape)
-# print('Before dropping correlated features in C: ', hhold_c_train.shape)
-# hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
-# hhold_c_train.drop(['jmsRIiqp', 'WWuPOkor', 'CtFxPQPT', 'gAZloxqF', 'PNAiwXUz', 'izNLFWMH', 'EQSmcscG'], axis = 1, inplace = True)
-# print('Dropped correlated features in c and b')
-# print('B: ', hhold_b_train.shape)
-# print('C: ', hhold_c_train.shape)
+print('Before dropping correlated features in B: ', hhold_b_train.shape)
+print('Before dropping correlated features in C: ', hhold_c_train.shape)
+hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
+hhold_c_train.drop(['jmsRIiqp', 'WWuPOkor', 'CtFxPQPT', 'gAZloxqF', 'PNAiwXUz', 'izNLFWMH', 'EQSmcscG'], axis = 1, inplace = True)
+print('Dropped correlated features in c and b')
+print('B: ', hhold_b_train.shape)
+print('C: ', hhold_c_train.shape)
 
-# Try drop features that have low diversity, or have no seperation between poor and not poor in the distribution. Found these by looking at features with really high skew (like ~23 & ~41). Worse one LB: 0.3624
-# hhold_a_train.drop(['nEsgxvAq', 'OMtioXZZ'], axis = 1, inplace = True) # OMtioXZZ might want to keep
-# hhold_b_train.drop(['cDhZjxaW', 'oszSdLhD', 'GrLBZowF', 'NBWkerdL', 'rCVqiShm', 'NjDdhqIe'], axis = 1, inplace = True)
-# hhold_c_train.drop(['detlNNFh', 'xFKmUXhu', 'snkiwkvf', 'POJXrpmn' ], axis = 1, inplace = True)
+# Try drop features that have low diversity, or have no seperation between poor and not poor in the distribution. Found these by looking at features with really high skew (like ~23 & ~41). 
+hhold_a_train.drop(['nEsgxvAq', 'OMtioXZZ'], axis = 1, inplace = True) # OMtioXZZ might want to keep
+hhold_b_train.drop(['cDhZjxaW', 'oszSdLhD', 'GrLBZowF', 'NBWkerdL', 'rCVqiShm', 'NjDdhqIe'], axis = 1, inplace = True)
+hhold_c_train.drop(['detlNNFh', 'xFKmUXhu', 'snkiwkvf', 'POJXrpmn' ], axis = 1, inplace = True)
 
 # Log transform features with high skew
 hhold_c_train['DBjxSUvf'] = np.log(hhold_c_train['DBjxSUvf'])
@@ -62,24 +60,14 @@ by_train = hhold_b_train['poor'].values.astype(int)
 cy_train = hhold_c_train['poor'].values.astype(int)
 
 # train
-model_lgb = lgb.LGBMClassifier(n_estimators = 50,
-                              objective = 'binary', 
-                              num_threads = 4,
-                              learning_rate = 0.05)
+model_LR = LogisticRegression()
+a_model = model_LR.fit(aX_train, ay_train)
 
-a_model = model_lgb.fit(aX_train, ay_train)
+model_LR = LogisticRegression()
+b_model = model_LR.fit(bX_train, by_train)
 
-model_lgb = lgb.LGBMClassifier(n_estimators = 50,
-                              objective = 'binary', 
-                              num_threads = 4,
-                              learning_rate = 0.05)
-b_model = model_lgb.fit(bX_train, by_train)
-
-model_lgb = lgb.LGBMClassifier(n_estimators = 50,
-                              objective = 'binary', 
-                              num_threads = 4,
-                              learning_rate = 0.05)
-c_model = model_lgb.fit(cX_train, cy_train)
+model_LR = LogisticRegression()
+c_model = model_LR.fit(cX_train, cy_train)
 
 # preprocess test
 aX_test = PoverTHelperTools.pre_process_data(hhold_a_test,enforce_cols =aX_train.columns , fillmean = None)
