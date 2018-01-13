@@ -27,21 +27,11 @@ indiv_a_train, indiv_b_train, indiv_c_train = load_indiv_train()
 
 #### Begin CV
 # prep training and test data
-X = hhold_b_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
-y = hhold_b_train['poor'].values
-indiv_X = indiv_b_train.drop(['poor','country'], axis = 1)
+X = hhold_c_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
+y = hhold_c_train['poor'].values
+indiv_X = indiv_c_train.drop(['poor','country'], axis = 1)
 
 #### Drop columns that we won't need at all
-# columns with lots of NaNs
-hhold_b_train.drop(['FGWqGkmD', 
-     'BXOWgPgL',
-     'umkFMfvA',
-     'McFBIGsm',
-     'IrxBnWxE',
-     'BRzuVmyf',
-     'dnlnKrAg',
-     'aAufyreG',
-     'OSmfjCbE'], axis = 1, inplace=True)
 #### end drop columns
 
 cat_columns = X.select_dtypes(include = ['object']).columns
@@ -54,7 +44,7 @@ avg_logloss = [] # final scores to analyze later
        # 'min_child_weight': [1], 'gamma' : [0.1,0.2,0.3], 'subsample': [0.5,0.8]
        # }
 
-grid = {'n_estimators' : [400]}
+grid = {'n_estimators' : range(100,600,100)}
 # gamma, subsample, colsample_bytree)
 print('Starting grid search...')
 for params in list(ParameterGrid(grid)):
@@ -112,4 +102,7 @@ for params in list(ParameterGrid(grid)):
     print('average logloss: ', np.average(logloss))
     print('\n')
     avg_logloss.append((params, np.average(logloss)))
+
+
+
 
