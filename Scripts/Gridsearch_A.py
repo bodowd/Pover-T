@@ -14,6 +14,8 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.metrics import log_loss
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, ParameterGrid
+from sklearn.feature_selection import SelectFromModel
+
 import lightgbm as lgb
 import xgboost as xgb
 
@@ -25,19 +27,21 @@ hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()
 
 indiv_a_train, indiv_b_train, indiv_c_train = load_indiv_train()
 
-# make training sets
-X = hhold_a_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
-y = hhold_a_train['poor'].values
-indiv_X = indiv_a_train.drop(['poor','country'], axis = 1)
-
 
 #### Drop columns that we won't need at all
 # columns with lots of NaNs
 indiv_a_train.drop('OdXpbPGJ', axis = 1, inplace = True)
+
+hhold_a_train.drop(['YFMZwKrU', 'OMtioXZZ'], axis = 1, inplace = True)
 #### end drop columns
 
+## Begin CV
+X = hhold_a_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
+y = hhold_a_train['poor'].values
+indiv_X = indiv_a_train.drop(['poor','country'], axis = 1)
+
 cat_columns = X.select_dtypes(include = ['object']).columns
-num_columns = X.select_dtypes(include = ['int64', 'float64']).columns
+# num_columns = X.select_dtypes(include = ['int64', 'float64']).columns
 
 skf = StratifiedKFold(n_splits = 3, random_state = 144)
 
@@ -50,7 +54,7 @@ grid = {'n_estimators':[100], 'max_depth':[5], 'reg_alpha':[0.5], 'reg_lambda': 
        }
 print('Starting grid search...')
 for params in list(ParameterGrid(grid)):
-    clf = xgb.XGBClassifier(**params, eval_metic = 'logloss', random_state = 144, verbose = 2)
+    clf = xgb.XGBClassifier(**params, eval_metric = 'logloss', random_state = 144, verbose = 2)
     logloss=[] # reset list
     
     for train_idx, val_idx in skf.split(X,y):
@@ -86,16 +90,18 @@ for params in list(ParameterGrid(grid)):
 
         ## standardizing remaining columns
         # standardize only the numerical columns
+        num_columns = ['TiwRslOh']
         X_train[num_columns] = standardize(X_train[num_columns])
         X_val[num_columns] = standardize(X_val[num_columns])
+        
         # label encode remaining cat columns. don't want to redo what was label encoded in indiv already
         X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
         X_val[cat_columns] = X_val[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
 
         assert X_train.shape[0] == y_train.shape[0]
-
+        
         clf.fit(X_train, y_train)
-
+        
         # enforce X_val for prediction
     #     X_val = enforce_cols(X_val, X_train)
 

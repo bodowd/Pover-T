@@ -14,6 +14,8 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.metrics import log_loss
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, ParameterGrid
+from sklearn.feature_selection import SelectFromModel
+
 import lightgbm as lgb
 import xgboost as xgb
 
@@ -25,13 +27,8 @@ hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()
 
 indiv_a_train, indiv_b_train, indiv_c_train = load_indiv_train()
 
-#### Begin CV
-# prep training and test data
-X = hhold_b_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
-y = hhold_b_train['poor'].values
-indiv_X = indiv_b_train.drop(['poor','country'], axis = 1)
 
-#### Drop columns that we won't need at all
+#### Drop columns that we won't need at all. Don't want to accidently upsample rows with these in there and then throw balance off
 # columns with lots of NaNs
 hhold_b_train.drop(['FGWqGkmD', 
      'BXOWgPgL',
@@ -42,10 +39,33 @@ hhold_b_train.drop(['FGWqGkmD',
      'dnlnKrAg',
      'aAufyreG',
      'OSmfjCbE'], axis = 1, inplace=True)
+# drop columns with only 1 unique value
+hhold_b_train.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
+
+# no seperation between classes
+hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
+       'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
+       'IOMvIGQS'], axis = 1, inplace = True)
+
+# correlated features
+hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
+
+# drop columns with lots of NaNs
+indiv_b_train.drop(['BoxViLPz', 'qlLzyqpP', 'unRAgFtX', 'TJGiunYp', 'WmKLEUcd', 'DYgxQeEi', 'jfsTwowc', 'MGfpfHam', 'esHWAAyG', 'DtcKwIEv', 'ETgxnJOM', 'TZDgOhYY', 'sWElQwuC', 'jzBRbsEG', 'CLTXEwmz', 'WqEZQuJP', 'DSttkpSI', 'sIiSADFG', 'uDmhgsaQ', 'hdDTwJhQ', 'AJgudnHB', 'iZhWxnWa', 'fyfDnyQk', 'nxAFXxLQ', 'mAeaImix', 'HZqPmvkr', 'tzYvQeOb', 'NfpXxGQk'], axis = 1, inplace = True)
+
+indiv_b_train['wJthinfa_2'] = indiv_b_train['wJthinfa']
+indiv_b_train.drop('wJthinfa', axis = 1, inplace = True)
 #### end drop columns
 
+
+#### Begin CV
+# prep training and test data
+X = hhold_b_train.drop(['country'], axis = 1) # need to keep poor to resample inside the CV loop
+y = hhold_b_train['poor'].values
+indiv_X = indiv_b_train.drop(['poor','country'], axis = 1)
+
 cat_columns = X.select_dtypes(include = ['object']).columns
-num_columns = X.select_dtypes(include = ['int64', 'float64']).columns
+# num_columns = X.select_dtypes(include = ['int64', 'float64']).columns
 
 skf = StratifiedKFold(n_splits = 3, random_state = 144)
 
@@ -54,11 +74,12 @@ avg_logloss = [] # final scores to analyze later
        # 'min_child_weight': [1], 'gamma' : [0.1,0.2,0.3], 'subsample': [0.5,0.8]
        # }
 
-grid = {'n_estimators' : [400]}
-# gamma, subsample, colsample_bytree)
+grid = {'n_estimators':[400], 'max_depth':[3], 'reg_alpha':[0], 'reg_lambda': [1], 'min_child_weight': [5]} # xgb params
+# , 'gamma' : [0.1, 0.2, 0.3], 'subsample': [0.5]
 print('Starting grid search...')
 for params in list(ParameterGrid(grid)):
     clf = xgb.XGBClassifier(**params, eval_metric = 'logloss', random_state = 144, verbose = 2)
+    # clf = RandomForestClassifier(**params)
     logloss=[] # reset list
     
     for train_idx, val_idx in skf.split(X,y):
@@ -94,16 +115,19 @@ for params in list(ParameterGrid(grid)):
 
         ## standardizing remaining columns
         # standardize only the numerical columns
+        # num_columns = ['num_indiv', 'cDhZjxaW', 'vuQrLzvK', 'NBWkerdL', 'wJthinfa']
+        num_columns = ['num_indiv']
         X_train[num_columns] = standardize(X_train[num_columns])
         X_val[num_columns] = standardize(X_val[num_columns])
+
         # label encode remaining cat columns. don't want to redo what was label encoded in indiv already
         X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
         X_val[cat_columns] = X_val[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
 
         assert X_train.shape[0] == y_train.shape[0]
-
+       
         clf.fit(X_train, y_train)
-
+        
         preds = clf.predict_proba(X_val)
 
         logloss.append(log_loss(y_val, preds[:,1]))
