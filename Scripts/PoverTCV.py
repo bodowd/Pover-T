@@ -26,7 +26,6 @@ from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import log_loss
 
 from sklearn.preprocessing import LabelEncoder
-from imblearn.over_sampling import SMOTE
 
 def resample_data(df, how = 'down'):
     """
@@ -45,7 +44,7 @@ def resample_data(df, how = 'down'):
                                            )
         df_resampled = pd.concat([df_majority_downsampled, df_minority])
     elif how == 'up':
-        print('Upsampling data...')
+        # print('Upsampling data...')
         df_minority_upsampled = resample(df_minority,
                                           replace = True, #sample with replacement
                                           n_samples = df_majority.shape[0], # to match majority class amount
@@ -83,16 +82,19 @@ def run_CV(X,y,model,func, n_splits = 3, how = 'up', categorical = 'label_encode
         # # recreate dataframe
         # X_train = pd.DataFrame(X_train, columns = orig_cols)
 
-        if how:
+        if how is not None:
             # resample to balance data
             X_resampled = resample_data(X_train, how = how)
             # store the targets now that they are balanced
             y_train = X_resampled['poor']
             # drop target from train
             X_train = X_resampled.drop('poor', axis = 1)
+            X_val.drop('poor', axis = 1, inplace = True)
+            # print(X_val.columns.values)
         ####### feature engineering goes blow this comment:
        
         func(X_train)
+        func(X_val)
        
         ###### end feature eng
         X_train = pre_process_data(X_train, normalize_num='standardize', categorical = categorical)

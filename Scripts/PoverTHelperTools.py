@@ -34,60 +34,32 @@ def load_indiv_test():
 
 """Helper functions to standardize data and preprocess data"""
 def standardize(df):
-    print('Standardizing (normalizing)')
+    # print('Standardizing (normalizing)')
     numeric = df.select_dtypes(include=['int64', 'float64'])
     
     # subtract mean and divide by std
     df[numeric.columns] = (numeric- numeric.mean()) / numeric.std() 
     return df
+
 def min_max_scaler(df):
     print('Min Max scaling...')
     numeric = df.select_dtypes(include=['int64', 'float64'])
     df[numeric.columns] =  MinMaxScaler().fit_transform(df[numeric.columns])
     return df
 
-def add_noise(series, noise_level):
-    return series * (1 + noise_level * np.random.randn(len(series)))
 
-def target_encode(trn_series=None, 
-                  tst_series=None, 
-                  target=None, 
-                  min_samples_leaf=1, 
-                  smoothing=1,
-                  noise_level=0):
-    """
-    Copied from a kernel by olivier on kaggle...
-    
-    Smoothing is computed like in the following paper by Daniele Micci-Barreca
-    https://kaggle2.blob.core.windows.net/forum-message-attachments/225952/7441/high%20cardinality%20categoricals.pdf
-    trn_series : training categorical feature as a pd.Series
-    tst_series : test categorical feature as a pd.Series
-    target : target data as a pd.Series
-    min_samples_leaf (int) : minimum samples to take category average into account
-    smoothing (int) : smoothing effect to balance categorical average vs prior  
+def enforce_cols(test, train):
+    """Takes the training dataframe in to enforce the columns on the test set
+    test : the test set
+    train : the dataframe to base the enforcement off of. Should be the train set
     """ 
-    assert len(trn_series) == len(target)
+    to_drop = np.setdiff1d(test.columns, train)
+    to_add = np.setdiff1d(train, test.columns)
 
-    temp = pd.concat([trn_series, target], axis=1)
-    # Compute target mean 
-    averages = temp.groupby(by=trn_series.name)[target.name].agg(["mean", "count"])
-    # Compute smoothing
-    smoothing = 1 / (1 + np.exp(-(averages["count"] - min_samples_leaf) / smoothing))
-    # Apply average function to all target data
-    prior = target.mean()
-    # The bigger the count the less full_avg is taken into account
-    averages[target.name] = prior * (1 - smoothing) + averages["mean"] * smoothing
-    averages.drop(["mean", "count"], axis=1, inplace=True)
-    # Apply averages to trn and tst series
-    ft_trn_series = pd.merge(
-        trn_series.to_frame(trn_series.name),
-        averages.reset_index().rename(columns={'index': target.name, target.name: 'average'}),
-        on=trn_series.name,
-        how='left')['average'].rename(trn_series.name + '_mean').fillna(prior)
-    # pd.merge does not keep the index so restore it
-    ft_trn_series.index = trn_series.index 
-
-    return add_noise(ft_trn_series, noise_level)
+    test.drop(to_drop, axis=1, inplace=True)
+    test = test.assign(**{c: 0 for c in to_add})
+    
+    return test
 
 def pre_process_data(df, normalize_num = 'standardize', enforce_cols = None, fillmean=None, categorical = 'label_encoder', target = None):
     """
@@ -108,6 +80,8 @@ def pre_process_data(df, normalize_num = 'standardize', enforce_cols = None, fil
         df = standardize(df)
     elif normalize_num == 'min_max':
         df = min_max_scaler(df)
+    elif normalize_num is None:
+        pass
     # print('After standardization {}'.format(df.shape))
 
     # get categorical columns
