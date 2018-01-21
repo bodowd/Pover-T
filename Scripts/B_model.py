@@ -69,6 +69,14 @@ def run_b_model():
     
     indiv_b_test['wJthinfa_2'] = indiv_b_test['wJthinfa']
     indiv_b_test.drop('wJthinfa', axis = 1, inplace = True)
+    
+    
+    print('Dropping all categoricals')
+    
+    cat_columns = list(hhold_b_train.select_dtypes(include = ['object']).columns)
+    cat_columns.remove('country') # keep country. It gets selected by line above
+    hhold_b_train.drop(cat_columns, axis = 1, inplace = True)
+    hhold_b_test.drop(cat_columns, axis = 1, inplace = True)
 
     #### end drop columns #####
 
@@ -82,7 +90,7 @@ def run_b_model():
     indiv_X_test = indiv_b_test.drop('country', axis = 1)
     
     # store cat columns and numerical columns for later use
-    cat_columns = X_train.select_dtypes(include = ['object']).columns
+    # cat_columns = X_train.select_dtypes(include = ['object']).columns
     # num_columns = X_train.select_dtypes(include = ['int64', 'float64']).columns
 
     # make new features from the individual sets
@@ -91,8 +99,8 @@ def run_b_model():
     X_test = num_indiv(X_test, indiv_X_test)
 
     # label encode individual train/test set
-    indiv_X_train, indiv_cat_columns = labelencode_cat(indiv_X_train)
-    indiv_X_test, indiv_cat_columns = labelencode_cat(indiv_X_test)
+    # indiv_X_train, indiv_cat_columns = labelencode_cat(indiv_X_train)
+    # indiv_X_test, indiv_cat_columns = labelencode_cat(indiv_X_test)
 
     ## standardizing remaining columns
     # standardize only the numerical columns
@@ -102,8 +110,8 @@ def run_b_model():
     X_test[num_columns] = standardize(X_test[num_columns])
         
     # just drop all category columns
-    X_train.drop(cat_columns, axis = 1, inplace = True)
-    X_test.drop(cat_columns, axis = 1, inplace = True)
+    # X_train.drop(cat_columns, axis = 1, inplace = True)
+    # X_test.drop(cat_columns, axis = 1, inplace = True)
 
     # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
     # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
