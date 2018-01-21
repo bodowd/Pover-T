@@ -24,9 +24,23 @@ def run_a_model():
     indiv_a_test.drop('OdXpbPGJ', axis = 1, inplace = True)
    
     # these features have overlapping distributions. improved CV just a little bit
-    hhold_a_train.drop(['YFMZwKrU', 'OMtioXZZ'], axis = 1, inplace = True)
-    hhold_a_test.drop(['YFMZwKrU', 'OMtioXZZ'], axis = 1, inplace = True)
-   #### end drop columns #####
+    hhold_a_train.drop(['YFMZwKrU',
+	# 'nEsgxvAq', # added 1_17
+	'OMtioXZZ'], axis = 1, inplace = True)
+    hhold_a_test.drop(['YFMZwKrU', 
+	# 'nEsgxvAq', # added 1_17 . removed again 1_17. See if it helps to have it in there, while dropping all categoricals in B
+	'OMtioXZZ'], axis = 1, inplace = True)
+   
+    # cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
+    # cat_to_keep = ['QyBloWXZ', 'NRVuZwXK', 'JwtIxvKg', 'KjkrfGLD', 'bPOwgKnT', 'bMudmjzJ', 'glEjrMIg', 'LjvKYNON','HHAeIHna' ,'CrfscGZl', 'yeHQSlwg', 'ZnBLVaqz', 'AsEmHUzj', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'EuJrVjyG', 'qgxmqJKa', 'DNAfxPzs', 'xkUFKUoW', 'AtGRGAYi','xZBEXWPR','ishdUooQ','ptEAnCSs', 'kLkPtNnh','PWShFLnY', 'uRFXnNKV','vRIvQXtC', 'UjuNwfjv','cDkXTaWP' ,'country']
+    # cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
+
+    # hhold_a_train.drop(cat_to_drop, axis = 1, inplace = True)
+    # hhold_a_test.drop(cat_to_drop, axis = 1, inplace = True)
+    # print('train shape: ', hhold_a_train.shape)
+    # print('test shape: ', hhold_a_test.shape)
+
+    #### end drop columns #####
 
 
     # make training sets

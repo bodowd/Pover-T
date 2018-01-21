@@ -38,6 +38,12 @@ def run_c_model():
            'EQSmcscG', 'aFKPYcDt', 'BBPluVrb', 'gAZloxqF', 'vSqQCatY',
            'phbxKGlB','snkiwkvf','ZZGQNLOX', 'POJXrpmn', 'jmsRIiqp', 'izNLFWMH', 'nTaJkLaJ'], axis =1, inplace = True)
     
+    print('Dropping all categoricals')
+    
+    cat_columns = list(hhold_c_train.select_dtypes(include = ['object']).columns)
+    cat_columns.remove('country') # keep country. It gets selected by line above
+    hhold_c_train.drop(cat_columns, axis = 1, inplace = True)
+    hhold_c_test.drop(cat_columns, axis = 1, inplace = True)
     
     #### end drop columns #####
 
@@ -51,7 +57,7 @@ def run_c_model():
     indiv_X_test = indiv_c_test.drop('country', axis = 1)
     
     # store cat columns and numerical columns for later use
-    cat_columns = X_train.select_dtypes(include = ['object']).columns
+    # cat_columns = X_train.select_dtypes(include = ['object']).columns
     # num_columns = X_train.select_dtypes(include = ['int64', 'float64']).columns
 
     # make new features from the individual sets
@@ -75,10 +81,10 @@ def run_c_model():
     X_train[num_columns] = standardize(X_train[num_columns])
     X_test[num_columns] = standardize(X_test[num_columns])
 
-    # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
 
-    X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
+    # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
+    # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
+    # X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
 
     ### end features
     

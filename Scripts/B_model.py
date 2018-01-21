@@ -28,7 +28,7 @@ def run_b_model():
          'McFBIGsm',
          'IrxBnWxE',
          'BRzuVmyf',
-         'dnlnKrAg',
+         'dnlnKrAg', 
          'aAufyreG',
          'OSmfjCbE'], axis = 1, inplace=True)
     hhold_b_test.drop(['FGWqGkmD', 
@@ -47,9 +47,11 @@ def run_b_model():
     # no seperation between classes
     hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
            'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
+           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
            'IOMvIGQS'], axis = 1, inplace = True)
     hhold_b_test.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
            'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
+           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
            'IOMvIGQS'], axis = 1, inplace = True)
 
     # correlated features
@@ -98,10 +100,14 @@ def run_b_model():
 
     X_train[num_columns] = standardize(X_train[num_columns])
     X_test[num_columns] = standardize(X_test[num_columns])
+        
+    # just drop all category columns
+    X_train.drop(cat_columns, axis = 1, inplace = True)
+    X_test.drop(cat_columns, axis = 1, inplace = True)
 
     # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
-    X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
+    # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
+    # X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
 
     ### end features
     
