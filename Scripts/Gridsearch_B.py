@@ -11,7 +11,7 @@ from NewFeatFuncs import *
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
 from sklearn.model_selection import cross_val_score, cross_val_predict
-from sklearn.metrics import log_loss
+from sklearn.metrics import log_loss, f1_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, ParameterGrid
 from sklearn.feature_selection import SelectFromModel
@@ -55,6 +55,12 @@ indiv_b_train.drop(['BoxViLPz', 'qlLzyqpP', 'unRAgFtX', 'TJGiunYp', 'WmKLEUcd', 
 
 indiv_b_train['wJthinfa_2'] = indiv_b_train['wJthinfa']
 indiv_b_train.drop('wJthinfa', axis = 1, inplace = True)
+
+# just drop all category columns
+print('Dropping all categoricals')
+cat_columns = list(hhold_b_train.select_dtypes(include = ['object']).columns)
+cat_columns.remove('country') # keep country. It gets selected by line above
+hhold_b_train.drop(cat_columns, axis = 1, inplace = True)
 #### end drop columns
 
 
@@ -64,7 +70,6 @@ X = hhold_b_train.drop(['country'], axis = 1) # need to keep poor to resample in
 y = hhold_b_train['poor'].values
 indiv_X = indiv_b_train.drop(['poor','country'], axis = 1)
 
-cat_columns = X.select_dtypes(include = ['object']).columns
 # num_columns = X.select_dtypes(include = ['int64', 'float64']).columns
 
 skf = StratifiedKFold(n_splits = 3, random_state = 144)
@@ -81,7 +86,7 @@ for params in list(ParameterGrid(grid)):
     clf = xgb.XGBClassifier(**params, eval_metric = 'logloss', random_state = 144, verbose = 2)
     # clf = RandomForestClassifier(**params)
     logloss=[] # reset list
-    
+    f1 = []    
     for train_idx, val_idx in skf.split(X,y):
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
@@ -121,8 +126,8 @@ for params in list(ParameterGrid(grid)):
         X_val[num_columns] = standardize(X_val[num_columns])
 
         # label encode remaining cat columns. don't want to redo what was label encoded in indiv already
-        X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
-        X_val[cat_columns] = X_val[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
+        # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
+        # X_val[cat_columns] = X_val[cat_columns].apply(LabelEncoder().fit_transform)        # new features 
 
         assert X_train.shape[0] == y_train.shape[0]
        
@@ -131,9 +136,12 @@ for params in list(ParameterGrid(grid)):
         preds = clf.predict_proba(X_val)
 
         logloss.append(log_loss(y_val, preds[:,1]))
+        preds_01 = (preds[:,1] > 0.5)
+        f1.append(f1_score(y_val, preds_01))
 
     print(params)
     print('average logloss: ', np.average(logloss))
     print('\n')
+    print('average f1: ', np.average(f1))
     avg_logloss.append((params, np.average(logloss)))
 

@@ -11,7 +11,7 @@ from NewFeatFuncs import *
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score, cross_val_predict
-from sklearn.metrics import log_loss
+from sklearn.metrics import log_loss, f1_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import GridSearchCV, ParameterGrid
 from sklearn.feature_selection import SelectFromModel
@@ -33,6 +33,19 @@ indiv_a_train, indiv_b_train, indiv_c_train = load_indiv_train()
 indiv_a_train.drop('OdXpbPGJ', axis = 1, inplace = True)
 
 hhold_a_train.drop(['YFMZwKrU', 'OMtioXZZ'], axis = 1, inplace = True)
+
+# these categoricals look predictive. Keep these. So select all columns in this list 
+cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
+cat_to_keep = ['QyBloWXZ', 'NRVuZwXK', 'JwtIxvKg', 'KjkrfGLD', 'bPOwgKnT', 'bMudmjzJ', 'glEjrMIg', 'LjvKYNON','HHAeIHna' ,'CrfscGZl', 'yeHQSlwg', 'ZnBLVaqz', 'AsEmHUzj', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'EuJrVjyG', 'qgxmqJKa', 'DNAfxPzs', 'xkUFKUoW', 'AtGRGAYi','xZBEXWPR','ishdUooQ','ptEAnCSs', 'kLkPtNnh','PWShFLnY', 'uRFXnNKV','vRIvQXtC', 'UjuNwfjv','cDkXTaWP' ,'country']
+cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
+
+print(hhold_a_train.shape)
+hhold_a_train.drop(cat_to_drop, axis = 1, inplace = True)
+print('cat_to_keep length: ', len(cat_to_keep))
+print('cat_to_drop length: ', len(cat_to_drop))
+print(hhold_a_train.shape)
+print(hhold_a_train.columns)
+
 #### end drop columns
 
 ## Begin CV
@@ -56,7 +69,7 @@ print('Starting grid search...')
 for params in list(ParameterGrid(grid)):
     clf = xgb.XGBClassifier(**params, eval_metric = 'logloss', random_state = 144, verbose = 2)
     logloss=[] # reset list
-    
+    f1 = []    
     for train_idx, val_idx in skf.split(X,y):
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
@@ -109,8 +122,12 @@ for params in list(ParameterGrid(grid)):
 
         logloss.append(log_loss(y_val, preds[:,1]))
 
+        preds_01 = (preds[:,1] > 0.5)
+        f1.append(f1_score(y_val, preds_01))
+
     print(clf)
     print('average logloss: ', np.average(logloss))
     print('\n')
+    print('average f1: ', np.average(f1))
     avg_logloss.append((params, np.average(logloss)))
 
