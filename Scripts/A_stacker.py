@@ -4,7 +4,7 @@ import numpy as np
 from PoverTHelperTools import *
 from NewFeatFuncs import *
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -97,7 +97,8 @@ def run_a_model():
     # for get_oof
     ntrain = hhold_a_train.drop(['poor', 'country'], axis = 1).shape[0]
     ntest = hhold_a_test.drop('country', axis = 1).shape[0]
-    skf = StratifiedKFold(n_splits = NFOLDS, random_state = SEED)
+    # skf = StratifiedKFold(n_splits = NFOLDS, random_state = SEED)
+    skf = StratifiedShuffleSplit(n_splits = 2, test_size = 0.3, random_state = SEED)
 
     # store cat columns and numerical columns for later use
     cat_columns = X_train.select_dtypes(include = ['object']).columns
@@ -128,31 +129,36 @@ def run_a_model():
     xgb_params = {'n_estimators':400, 'max_depth':5, 'reg_alpha':0.5,
         'reg_lambda': 0.5,'min_child_weight': 1, 'gamma' : 0.1, 'subsample': 0.5}
     rf_params = {'n_estimators':200, 'criterion': 'entropy'}
-    svc_params = {'probability': True}
+    svc_params = {'probability': True, 'class_weight': 'balanced'}
+    lr_params = {'class_weight': 'balanced'}
 
     # xgb.XGBClassifier()
     xgb_clf = SKlearnHelper(clf=xgb.XGBClassifier, seed = SEED, params = xgb_params)
     rf = SKlearnHelper(clf = RandomForestClassifier, seed = SEED, params = rf_params)
     svc = SKlearnHelper(clf = SVC, seed = SEED, params = svc_params)
+    lr = SKlearnHelper(clf = LogisticRegression, seed = SEED, params = lr_params)
 
     # get out of fold predictions
     xgb_oof_train, xgb_oof_test = get_oof(xgb_clf, X_train, y_train, X_test, ntrain, ntest, skf)
     rf_oof_train, rf_oof_test = get_oof(rf, X_train, y_train, X_test, ntrain, ntest, skf)
     svc_oof_train, svc_oof_test = get_oof(svc, X_train, y_train, X_test, ntrain, ntest, skf)
+    lr_oof_train, lr_oof_test = get_oof(lr, X_train, y_train, X_test, ntrain, ntest, skf)
 
     # first level output
     base_predictions_train = pd.DataFrame({'XGB': xgb_oof_train.ravel(),
         'RF': rf_oof_train.ravel(),
-        'SVC': svc_oof_train.ravel()
+        'SVC': svc_oof_train.ravel(),
+        'LR': lr_oof_train.ravel()
+
         })
 
     print(base_predictions_train.head())
-
+    print('correlations')
     print(base_predictions_train.corr().values)
 
     #### concatenate first-level train and test predictions to pass into second level
-    x_train = np.concatenate((xgb_oof_train, rf_oof_train, svc_oof_train), axis = 1)
-    x_test = np.concatenate((xgb_oof_test, rf_oof_test, svc_oof_test), axis = 1)
+    x_train = np.concatenate((xgb_oof_train, rf_oof_train, svc_oof_train, lr_oof_train), axis = 1)
+    x_test = np.concatenate((xgb_oof_test, rf_oof_test, svc_oof_test, lr_oof_test), axis = 1)
 
     # second level model
     lr_clf = LogisticRegression()
@@ -160,4 +166,11 @@ def run_a_model():
     predictions = lr_clf.predict_proba(x_test)
 
     print(predictions)
+    print('predictions shape: ',predictions.shape)
+    print('hhold_a_train shape: ',hhold_a_train.shape)
+    print('hhold_a_test shape: ',hhold_a_test.shape)
+
     return predictions
+
+if __name__ == '__main__':
+    run_a_model()
