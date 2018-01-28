@@ -55,7 +55,7 @@ def get_oof(clf, x_train, y_train, x_test, ntrain, ntest,skf):
     return oof_train.reshape(-1, 1), oof_test.reshape(-1,1)
 
 ###################
-def run_a_model():
+def run_b_model():
     # load data
     hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
     hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()
@@ -65,38 +65,77 @@ def run_a_model():
     indiv_a_test, indiv_b_test, indiv_c_test = load_indiv_test()
 
     #### prepare data
-    ####--- Drop columns that we won't need at all ####
+    #### Drop columns that we won't need at all ######
     # columns with lots of NaNs
-    indiv_a_train.drop('OdXpbPGJ', axis = 1, inplace = True)
-    indiv_a_test.drop('OdXpbPGJ', axis = 1, inplace = True)
+    hhold_b_train.drop(['FGWqGkmD', 
+         'BXOWgPgL',
+         'umkFMfvA',
+         'McFBIGsm',
+         'IrxBnWxE',
+         'BRzuVmyf',
+         'dnlnKrAg', 
+         'aAufyreG',
+         'OSmfjCbE'], axis = 1, inplace=True)
+    hhold_b_test.drop(['FGWqGkmD', 
+         'BXOWgPgL',
+         'umkFMfvA',
+         'McFBIGsm',
+         'IrxBnWxE',
+         'BRzuVmyf',
+         'dnlnKrAg',
+         'aAufyreG',
+         'OSmfjCbE'], axis = 1, inplace=True)
 
-    # these features have overlapping distributions. improved CV just a little bit
-    hhold_a_train.drop(['YFMZwKrU',
-    # 'nEsgxvAq', # added 1_17
-    'OMtioXZZ'], axis = 1, inplace = True)
-    hhold_a_test.drop(['YFMZwKrU',
-    # 'nEsgxvAq', # added 1_17 . removed again 1_17. See if it helps to have it in there, while dropping all categoricals in B
-    'OMtioXZZ'], axis = 1, inplace = True)
+    # drop columns with only 1 unique value
+    hhold_b_train.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
+    hhold_b_test.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
+    # no seperation between classes
+    hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
+           'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
+           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
+           'IOMvIGQS'], axis = 1, inplace = True)
+    hhold_b_test.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
+           'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
+           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
+           'IOMvIGQS'], axis = 1, inplace = True)
 
-    cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
-    cat_to_keep = ['zFkComtB','DxLvCGgv', 'YTdCRVJt', 'QyBloWXZ', 'ZRrposmO', 'ggNglVqE', 'JwtIxvKg', 'bMudmjzJ', 'LjvKYNON', 'HHAeIHna', 'CrfscGZl', 'ZnBLVaqz', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'qgxmqJKa', 'xkUFKUoW', 'phwExnuQ', 'ptEAnCSs', 'kLkPtNnh', 'DbUNVFwv', 'PWShFLnY', 'uRFXnNKV', 'UXhTXbuS', 'vRIvQXtC']
-    cat_to_keep.append('country')
-    cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
-    hhold_a_train.drop(cat_to_drop, axis = 1, inplace = True)
-    hhold_a_test.drop(cat_to_drop, axis = 1, inplace = True)
+    # correlated features
+    hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
+    hhold_b_test.drop(['ZvEApWrk'], axis = 1, inplace = True)
+    
+    # lots of NaNs
+    indiv_b_train.drop(['BoxViLPz', 'qlLzyqpP', 'unRAgFtX', 'TJGiunYp', 'WmKLEUcd', 'DYgxQeEi', 'jfsTwowc', 'MGfpfHam', 'esHWAAyG', 'DtcKwIEv', 'ETgxnJOM', 'TZDgOhYY', 'sWElQwuC', 'jzBRbsEG', 'CLTXEwmz', 'WqEZQuJP', 'DSttkpSI', 'sIiSADFG', 'uDmhgsaQ', 'hdDTwJhQ', 'AJgudnHB', 'iZhWxnWa', 'fyfDnyQk', 'nxAFXxLQ', 'mAeaImix', 'HZqPmvkr', 'tzYvQeOb', 'NfpXxGQk'], axis = 1, inplace = True)
+    
+    indiv_b_test.drop(['BoxViLPz', 'qlLzyqpP', 'unRAgFtX', 'TJGiunYp', 'WmKLEUcd', 'DYgxQeEi', 'jfsTwowc', 'MGfpfHam', 'esHWAAyG', 'DtcKwIEv', 'ETgxnJOM', 'TZDgOhYY', 'sWElQwuC', 'jzBRbsEG', 'CLTXEwmz', 'WqEZQuJP', 'DSttkpSI', 'sIiSADFG', 'uDmhgsaQ', 'hdDTwJhQ', 'AJgudnHB', 'iZhWxnWa', 'fyfDnyQk', 'nxAFXxLQ', 'mAeaImix', 'HZqPmvkr', 'tzYvQeOb', 'NfpXxGQk'], axis = 1, inplace = True)
+
+    # need to rename because there are same column names in hhold and indiv 
+    indiv_b_train['wJthinfa_2'] = indiv_b_train['wJthinfa']
+    indiv_b_train.drop('wJthinfa', axis = 1, inplace = True)
+    
+    indiv_b_test['wJthinfa_2'] = indiv_b_test['wJthinfa']
+    indiv_b_test.drop('wJthinfa', axis = 1, inplace = True)
+    
+    
+    print('Dropping all categoricals')
+    
+    cat_columns = list(hhold_b_train.select_dtypes(include = ['object']).columns)
+    cat_columns.remove('country') # keep country. It gets selected by line above
+    hhold_b_train.drop(cat_columns, axis = 1, inplace = True)
+    hhold_b_test.drop(cat_columns, axis = 1, inplace = True)
 
     #### end drop columns #####
+    
     # begin features
-    y_train = hhold_a_train['poor'].values
-    X_train = hhold_a_train.drop(['poor', 'country'], axis = 1)
-    X_test = hhold_a_test.drop('country', axis = 1)
-    indiv_X_train = indiv_a_train.drop(['poor','country'], axis = 1)
-    indiv_X_test = indiv_a_test.drop('country', axis = 1)
+    y_train = hhold_b_train['poor'].values
+    X_train = hhold_b_train.drop(['poor', 'country'], axis = 1)
+    X_test = hhold_b_test.drop('country', axis = 1)
+    indiv_X_train = indiv_b_train.drop(['poor','country'], axis = 1)
+    indiv_X_test = indiv_b_test.drop('country', axis = 1)
 
 
     # for get_oof
-    ntrain = hhold_a_train.drop(['poor', 'country'], axis = 1).shape[0]
-    ntest = hhold_a_test.drop('country', axis = 1).shape[0]
+    ntrain = hhold_b_train.drop(['poor', 'country'], axis = 1).shape[0]
+    ntest = hhold_b_test.drop('country', axis = 1).shape[0]
     skf = StratifiedKFold(n_splits = NFOLDS, random_state = SEED)
 
     # store cat columns and numerical columns for later use
@@ -113,13 +152,9 @@ def run_a_model():
 
     ## standardizing remaining columns
     # standardize only the numerical columns
-    num_columns = ['TiwRslOh', 'num_indiv']
+    num_columns = ['num_indiv']
     X_train[num_columns] = standardize(X_train[num_columns])
     X_test[num_columns] = standardize(X_test[num_columns])
-
-    # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
-    X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
 
 
     ### end features
@@ -161,3 +196,4 @@ def run_a_model():
 
     print(predictions)
     return predictions
+

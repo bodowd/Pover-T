@@ -55,7 +55,7 @@ def get_oof(clf, x_train, y_train, x_test, ntrain, ntest,skf):
     return oof_train.reshape(-1, 1), oof_test.reshape(-1,1)
 
 ###################
-def run_a_model():
+def run_c_model():
     # load data
     hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
     hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()
@@ -65,38 +65,45 @@ def run_a_model():
     indiv_a_test, indiv_b_test, indiv_c_test = load_indiv_test()
 
     #### prepare data
-    ####--- Drop columns that we won't need at all ####
-    # columns with lots of NaNs
-    indiv_a_train.drop('OdXpbPGJ', axis = 1, inplace = True)
-    indiv_a_test.drop('OdXpbPGJ', axis = 1, inplace = True)
-
-    # these features have overlapping distributions. improved CV just a little bit
-    hhold_a_train.drop(['YFMZwKrU',
-    # 'nEsgxvAq', # added 1_17
-    'OMtioXZZ'], axis = 1, inplace = True)
-    hhold_a_test.drop(['YFMZwKrU',
-    # 'nEsgxvAq', # added 1_17 . removed again 1_17. See if it helps to have it in there, while dropping all categoricals in B
-    'OMtioXZZ'], axis = 1, inplace = True)
-
-    cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
-    cat_to_keep = ['zFkComtB','DxLvCGgv', 'YTdCRVJt', 'QyBloWXZ', 'ZRrposmO', 'ggNglVqE', 'JwtIxvKg', 'bMudmjzJ', 'LjvKYNON', 'HHAeIHna', 'CrfscGZl', 'ZnBLVaqz', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'qgxmqJKa', 'xkUFKUoW', 'phwExnuQ', 'ptEAnCSs', 'kLkPtNnh', 'DbUNVFwv', 'PWShFLnY', 'uRFXnNKV', 'UXhTXbuS', 'vRIvQXtC']
-    cat_to_keep.append('country')
-    cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
-    hhold_a_train.drop(cat_to_drop, axis = 1, inplace = True)
-    hhold_a_test.drop(cat_to_drop, axis = 1, inplace = True)
-
+    #### Drop columns that we won't need at all #######
+    # # remove some outliers
+    # hhold_c_train = hhold_c_train[hhold_c_train['GIwNbAsH'] > -30]
+    # hhold_c_train = hhold_c_train[hhold_c_train['DBjxSUvf'] < 50000]    
+    # drop columns with only one unique value
+    hhold_c_train.drop(['GRGAYimk', 'DNnBfiSI', 'laWlBVrk', 'XAmOFyyg', 'gZWEypOM', 'kZmWbEDL', 'tTScFJYA', 'xyzchLjk', 'MtkqdQSs', 'enTUTSQi', 'kdkPWxwS', 'HNRJQbcm'], axis =1 , inplace = True)
+    hhold_c_test.drop(['GRGAYimk', 'DNnBfiSI', 'laWlBVrk', 'XAmOFyyg', 'gZWEypOM', 'kZmWbEDL', 'tTScFJYA', 'xyzchLjk', 'MtkqdQSs', 'enTUTSQi', 'kdkPWxwS', 'HNRJQbcm'], axis =1 , inplace = True)
+    # features with overlapping distributions 
+    # drop overlapping distributions
+    hhold_c_train.drop(['LhUIIEHQ', 'PNAiwXUz', 'NONtAKOM', 'WWuPOkor',
+           'CtFxPQPT', 'qLDzvjiU', 'detlNNFh', 'tXjyOtiS',
+           'EQtGHLFz', 'cmjTMVrd', 'hJrMTBVd', 'IRMacrkM',
+           'EQSmcscG', 'aFKPYcDt', 'BBPluVrb', 'gAZloxqF', 'vSqQCatY',
+           'phbxKGlB','snkiwkvf','ZZGQNLOX', 'POJXrpmn', 'jmsRIiqp', 'izNLFWMH', 'nTaJkLaJ'], axis =1, inplace = True)
+    hhold_c_test.drop(['LhUIIEHQ', 'PNAiwXUz', 'NONtAKOM', 'WWuPOkor',
+           'CtFxPQPT', 'qLDzvjiU', 'detlNNFh', 'tXjyOtiS',
+           'EQtGHLFz', 'cmjTMVrd', 'hJrMTBVd', 'IRMacrkM',
+           'EQSmcscG', 'aFKPYcDt', 'BBPluVrb', 'gAZloxqF', 'vSqQCatY',
+           'phbxKGlB','snkiwkvf','ZZGQNLOX', 'POJXrpmn', 'jmsRIiqp', 'izNLFWMH', 'nTaJkLaJ'], axis =1, inplace = True)
+    
+    print('Dropping all categoricals')
+    
+    cat_columns = list(hhold_c_train.select_dtypes(include = ['object']).columns)
+    cat_columns.remove('country') # keep country. It gets selected by line above
+    hhold_c_train.drop(cat_columns, axis = 1, inplace = True)
+    hhold_c_test.drop(cat_columns, axis = 1, inplace = True)
+    
     #### end drop columns #####
     # begin features
-    y_train = hhold_a_train['poor'].values
-    X_train = hhold_a_train.drop(['poor', 'country'], axis = 1)
-    X_test = hhold_a_test.drop('country', axis = 1)
-    indiv_X_train = indiv_a_train.drop(['poor','country'], axis = 1)
-    indiv_X_test = indiv_a_test.drop('country', axis = 1)
+    y_train = hhold_c_train['poor'].values
+    X_train = hhold_c_train.drop(['poor', 'country'], axis = 1)
+    X_test = hhold_c_test.drop('country', axis = 1)
+    indiv_X_train = indiv_c_train.drop(['poor','country'], axis = 1)
+    indiv_X_test = indiv_c_test.drop('country', axis = 1)
 
 
     # for get_oof
-    ntrain = hhold_a_train.drop(['poor', 'country'], axis = 1).shape[0]
-    ntest = hhold_a_test.drop('country', axis = 1).shape[0]
+    ntrain = hhold_c_train.drop(['poor', 'country'], axis = 1).shape[0]
+    ntest = hhold_c_test.drop('country', axis = 1).shape[0]
     skf = StratifiedKFold(n_splits = NFOLDS, random_state = SEED)
 
     # store cat columns and numerical columns for later use
@@ -111,15 +118,17 @@ def run_a_model():
     indiv_X_train, indiv_cat_columns = labelencode_cat(indiv_X_train)
     indiv_X_test, indiv_cat_columns = labelencode_cat(indiv_X_test)
 
+    # log transform
+    X_train['DBjxSUvf'] = np.log(X_train['DBjxSUvf'])
+    X_test['DBjxSUvf'] = np.log(X_test['DBjxSUvf'])
+    # X_train['nTaJkLaJ'] = np.log(X_train['nTaJkLaJ']+10) # might not be that good of feature. Poor 0/1 overlaps quite a bit
+    # X_test['nTaJkLaJ'] = np.log(X_test['nTaJkLaJ']+10) # might not be that good of feature. Poor 0/1 overlaps quite a bit
+
     ## standardizing remaining columns
     # standardize only the numerical columns
-    num_columns = ['TiwRslOh', 'num_indiv']
+    num_columns = ['xFKmUXhu', 'kLAQgdly', 'mmoCpqWS', 'DBjxSUvf'] 
     X_train[num_columns] = standardize(X_train[num_columns])
     X_test[num_columns] = standardize(X_test[num_columns])
-
-    # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
-    X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
 
 
     ### end features
@@ -161,3 +170,4 @@ def run_a_model():
 
     print(predictions)
     return predictions
+
