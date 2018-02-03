@@ -21,20 +21,24 @@
 # 1_26_v2 SVC_A, SVC_B XGB C LB: 0.19123
 # 1_27_v1. Stack A  LB:0.21840
 # 1_27_v2. XGBA stack BC LB:0.21653
+# 1_29_v1. Mean of Stack on A. BC as before (XGB) LB:0.21656
+# 1_29_v2. Mean of 3 XGBs on A. BC as single XGB LB: 0.22141
+# 2_3_v1. Try get dummies on A, BC as before. LB: 0.1863
+# 2_3_v2. Use get dummies on all countries. Just noticed after dropping all the cats and stuff in B, there is basically one feature left, wJthinfa and then the one I created num_indiv. LB: 0.18400. new lowest score, but only barely better than previous best. people on LB have far lower scores, I wonder if that is due to model tuning or some more feature engineering can be pushed. Num_indiv seems to be a useful feature. See notebook 'num_indiv'
 
 from A_model import *
-# from B_model import *
-# from C_model import *
+from B_model import *
+from C_model import *
 
 # from A_stacker import *
-from B_stacker import *
-from C_stacker import *
+# from B_stacker import *
+# from C_stacker import *
 
 from PoverTHelperTools import *
 
 import pandas as pd
 
-SUB_NAME = '1_27_v2.csv'
+SUB_NAME = '2_3_v2.csv'
 
 hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
 hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()

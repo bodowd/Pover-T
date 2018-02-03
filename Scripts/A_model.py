@@ -8,7 +8,11 @@ from PoverTCV import *
 from PoverTHelperTools import *
 from NewFeatFuncs import *
 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+
 import xgboost as xgb
+import lightgbm as lgb
 
 def run_a_model():
     hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
@@ -16,29 +20,27 @@ def run_a_model():
 
     indiv_a_train, indiv_b_train, indiv_c_train = load_indiv_train()
     # need to load indiv test sets here to make the new feats for the test set for submission
-    indiv_a_test, indiv_b_test, indiv_c_test = load_indiv_test() 
+    indiv_a_test, indiv_b_test, indiv_c_test = load_indiv_test()
 
     ####--- Drop columns that we won't need at all ####
     # columns with lots of NaNs
     indiv_a_train.drop('OdXpbPGJ', axis = 1, inplace = True)
     indiv_a_test.drop('OdXpbPGJ', axis = 1, inplace = True)
-   
+
     # these features have overlapping distributions. improved CV just a little bit
     hhold_a_train.drop(['YFMZwKrU',
 	# 'nEsgxvAq', # added 1_17
 	'OMtioXZZ'], axis = 1, inplace = True)
-    hhold_a_test.drop(['YFMZwKrU', 
+    hhold_a_test.drop(['YFMZwKrU',
 	# 'nEsgxvAq', # added 1_17 . removed again 1_17. See if it helps to have it in there, while dropping all categoricals in B
 	'OMtioXZZ'], axis = 1, inplace = True)
-   
-    # cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
-    # cat_to_keep = ['QyBloWXZ', 'NRVuZwXK', 'JwtIxvKg', 'KjkrfGLD', 'bPOwgKnT', 'bMudmjzJ', 'glEjrMIg', 'LjvKYNON','HHAeIHna' ,'CrfscGZl', 'yeHQSlwg', 'ZnBLVaqz', 'AsEmHUzj', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'EuJrVjyG', 'qgxmqJKa', 'DNAfxPzs', 'xkUFKUoW', 'AtGRGAYi','xZBEXWPR','ishdUooQ','ptEAnCSs', 'kLkPtNnh','PWShFLnY', 'uRFXnNKV','vRIvQXtC', 'UjuNwfjv','cDkXTaWP' ,'country']
-    # cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
 
+    # cat_columns = hhold_a_train.select_dtypes(include = ['object']).columns
+    # cat_to_keep = ['zFkComtB','DxLvCGgv', 'YTdCRVJt', 'QyBloWXZ', 'ZRrposmO', 'ggNglVqE', 'JwtIxvKg', 'bMudmjzJ', 'LjvKYNON', 'HHAeIHna', 'CrfscGZl', 'ZnBLVaqz', 'pCgBHqsR', 'wEbmsuJO', 'IZFarbPw', 'GhJKwVWC', 'qgxmqJKa', 'xkUFKUoW', 'phwExnuQ', 'ptEAnCSs', 'kLkPtNnh', 'DbUNVFwv', 'PWShFLnY', 'uRFXnNKV', 'UXhTXbuS', 'vRIvQXtC']
+    # cat_to_keep.append('country')
+    # cat_to_drop = list(set(cat_to_keep)^set(cat_columns))
     # hhold_a_train.drop(cat_to_drop, axis = 1, inplace = True)
     # hhold_a_test.drop(cat_to_drop, axis = 1, inplace = True)
-    # print('train shape: ', hhold_a_train.shape)
-    # print('test shape: ', hhold_a_test.shape)
 
     #### end drop columns #####
 
@@ -67,21 +69,33 @@ def run_a_model():
 
     ## standardizing remaining columns
     # standardize only the numerical columns
-    num_columns = ['TiwRslOh']
+    num_columns = ['TiwRslOh', 'num_indiv']
     X_train[num_columns] = standardize(X_train[num_columns])
     X_test[num_columns] = standardize(X_test[num_columns])
 
     # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
-    X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
+    # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
+    # X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
 
+    # concatenate train and test to do the one hot encoding. Train and test don't have the same categorical values so one hot encoding gives different number of features on the different sets
+    X_train['nEsgxvAq'] = X_train['nEsgxvAq'].astype('str')
+    X_test['nEsgxvAq'] = X_test['nEsgxvAq'].astype('str')
+    print(X_train.head(1))
+    tmp = pd.concat((X_train, X_test))
+    tmp = pd.get_dummies(tmp)
+    print(tmp.shape)
+    X_train = tmp.iloc[:X_train.shape[0]]
+    print(X_train.head(1))
+    X_test = tmp.iloc[X_train.shape[0]:]
 
     ### end features
-    params = {'n_estimators':100, 'max_depth':5, 'reg_alpha':0.5, 'reg_lambda': 0.5, 
+    params = {'n_estimators':100, 'max_depth':5, 'reg_alpha':0.5, 'reg_lambda': 0.5,
               'min_child_weight': 1, 'gamma' : 0.1, 'subsample': 0.5, 'random_state' : 144,'eval_metric' : 'logloss', 'verbose': 2}
 
     clf = xgb.XGBClassifier(**params)
+    # clf = lgb.LGBMClassifier(n_estimators = 50, objective = 'binary', num_threads = 4, learning_rate = 0.05)
 
+    # clf = SVC(probability = True, random_state = 2)
     # fit
     clf.fit(X_train, y_train)
 
@@ -89,3 +103,6 @@ def run_a_model():
     preds = clf.predict_proba(X_test)
 
     return preds
+
+if __name__ == '__main__':
+    run_a_model()
