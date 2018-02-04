@@ -1,6 +1,3 @@
-# notes:
-# resample data: when up or down sampling, it makes the log loss way worse, but gives non zero F1 and recall. However, without resampling, this will get low log loss BUT 0.0 for f1 and recall. Shows the problem of log loss on unbalanced targets. The xgb is not predicting anything above 0.5 (no 1's)
-
 import sys
 sys.path.append("/Users/Bing/Documents/DS/DrivenData/Pover-T/Scripts/") # need to add path to the parent folder where CV.py is
 
@@ -14,18 +11,16 @@ from NewFeatFuncs import *
 from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
 from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.metrics import log_loss, f1_score, recall_score, confusion_matrix
-
 from sklearn.linear_model import LogisticRegression
 
 import xgboost as xgb
-import lightgbm as lgb
 
 import warnings
 warnings.filterwarnings('ignore')
 
 #########
 
-def skfCV_B():
+def skfCV_C():
     # Load data
     print('Loading data...')
     hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
@@ -35,29 +30,14 @@ def skfCV_B():
 
     #########
     # drop columns
-    # columns with lots of NaNs
-    hhold_b_train.drop(['FGWqGkmD', 'BXOWgPgL', 'umkFMfvA', 'McFBIGsm', 'IrxBnWxE', 'BRzuVmyf', 'dnlnKrAg', 'aAufyreG', 'OSmfjCbE'], axis = 1, inplace=True)
-
-    # drop columns with only 1 unique value
-    hhold_b_train.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
-
-    # no seperation between classes
-    hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD', 'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD', 'NBWkerdL','vuQrLzvK','cDhZjxaW', 'IOMvIGQS'], axis = 1, inplace = True)
-
-    # correlated features
-    hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
-
-    # lots of NaNs
-    indiv_b_train.drop(['BoxViLPz', 'qlLzyqpP', 'unRAgFtX', 'TJGiunYp', 'WmKLEUcd', 'DYgxQeEi', 'jfsTwowc', 'MGfpfHam', 'esHWAAyG', 'DtcKwIEv', 'ETgxnJOM', 'TZDgOhYY', 'sWElQwuC', 'jzBRbsEG', 'CLTXEwmz', 'WqEZQuJP', 'DSttkpSI', 'sIiSADFG', 'uDmhgsaQ', 'hdDTwJhQ', 'AJgudnHB', 'iZhWxnWa', 'fyfDnyQk', 'nxAFXxLQ', 'mAeaImix', 'HZqPmvkr', 'tzYvQeOb', 'NfpXxGQk'], axis = 1, inplace = True)
-
-    # need to rename because there are same column names in hhold and indiv
-    indiv_b_train['wJthinfa_2'] = indiv_b_train['wJthinfa']
-    indiv_b_train.drop('wJthinfa', axis = 1, inplace = True)
-
-    # drop all categoricals
-    cat_columns = list(hhold_b_train.select_dtypes(include = ['object']).columns)
+    # drop columns with only one unique value
+    hhold_c_train.drop(['GRGAYimk', 'DNnBfiSI', 'laWlBVrk', 'XAmOFyyg', 'gZWEypOM', 'kZmWbEDL', 'tTScFJYA', 'xyzchLjk', 'MtkqdQSs', 'enTUTSQi', 'kdkPWxwS', 'HNRJQbcm'], axis =1 , inplace = True)
+    # drop overlapping distributions
+    hhold_c_train.drop(['LhUIIEHQ', 'PNAiwXUz', 'NONtAKOM', 'WWuPOkor', 'CtFxPQPT', 'qLDzvjiU', 'detlNNFh', 'tXjyOtiS', 'EQtGHLFz', 'cmjTMVrd', 'hJrMTBVd', 'IRMacrkM', 'EQSmcscG', 'aFKPYcDt', 'BBPluVrb', 'gAZloxqF', 'vSqQCatY', 'phbxKGlB','snkiwkvf','ZZGQNLOX', 'POJXrpmn', 'jmsRIiqp', 'izNLFWMH', 'nTaJkLaJ'], axis =1, inplace = True)
+    # Drop all categoricals
+    cat_columns = list(hhold_c_train.select_dtypes(include = ['object']).columns)
     cat_columns.remove('country') # keep country. It gets selected by line above
-    hhold_b_train.drop(cat_columns, axis = 1, inplace = True)
+    hhold_c_train.drop(cat_columns, axis = 1, inplace = True)
 
     #########
     # make training sets
@@ -66,9 +46,9 @@ def skfCV_B():
     f1 = []
     recall = []
 
-    X = hhold_b_train.drop('country', axis = 1)
-    y = hhold_b_train['poor'].values
-    indiv_X = indiv_b_train.drop(['poor','country'], axis = 1)
+    X = hhold_c_train.drop('country', axis = 1)
+    y = hhold_c_train['poor'].values
+    indiv_X = indiv_c_train.drop(['poor','country'], axis = 1)
 
     # begin CV loop
     n_splits = 3
@@ -82,8 +62,8 @@ def skfCV_B():
         indiv_X_val = indiv_X[indiv_X.index.get_level_values('id').isin(X_val.index.values)]
         # double check that the index values in the hhold data appear at least once in the individual index (indiv index has many duplicates of id because it is multi index)
         assert any(i in indiv_X_train.index.get_level_values('id').values for i in X_train.index.values)
-
-        # X_resampled = resample_data(X_train, how = 'down')
+        # resample data: when up or down sampling, it makes the log loss way worse, but gives non zero F1 and recall. Without resampling, get low log loss and 0.0 for f1 and recall. Shows the problem of log loss on unbalanced targets. The xgb is not predicting anything above 0.5 (no 1's)
+        # X_resampled = resample_data(X_train, how = 'up')
         # y_train = X_resampled['poor']
         # X_train = X_resampled.drop('poor', axis = 1)
         # X_val.drop('poor', axis = 1, inplace = True)
@@ -94,27 +74,39 @@ def skfCV_B():
         # make new features from indiv data set
         X_train = num_indiv(X_train, indiv_X_train)
         X_val = num_indiv(X_val, indiv_X_val)
+
         num_columns = ['num_indiv']
 
+        # standardize only the numerical columns
+        num_columns = ['xFKmUXhu', 'kLAQgdly', 'mmoCpqWS', 'num_indiv']
         X_train[num_columns] = standardize(X_train[num_columns])
         X_val[num_columns] = standardize(X_val[num_columns])
 
+        # log transform
+        X_train['DBjxSUvf'] = np.log(X_train['DBjxSUvf'])
+        X_val['DBjxSUvf'] = np.log(X_val['DBjxSUvf'])
+
         # one hot encoding
         # concatenate train and test to do the one hot encoding. Train and test don't have the same categorical values so one hot encoding gives different number of features on the different sets
-        X_train['wJthinfa'] = X_train['wJthinfa'].astype('str') # treat this feature as categorical
-        X_val['wJthinfa'] = X_val['wJthinfa'].astype('str')
-
+        new_cats = list(set(X_train.columns.values) - set(num_columns))
+        print(new_cats)
+        X_train[new_cats] = X_train[new_cats].astype('str')
+        X_val[new_cats] = X_val[new_cats].astype('str')
         print(X_train.head(1))
         tmp = pd.concat((X_train, X_val))
         tmp = pd.get_dummies(tmp)
+        print(tmp.shape)
         X_train = tmp.iloc[:X_train.shape[0]]
         print(X_train.head(1))
         X_val = tmp.iloc[X_train.shape[0]:]
 
-        # params = {'n_estimators':400, 'max_depth':3, 'reg_alpha':0, 'reg_lambda':1, 'min_child_weight': 5} # xgb params
+        # params = {'n_estimators':400, 'max_depth':5, 'reg_alpha':0.5, 'reg_lambda': 0.5,
+           # 'min_child_weight': 1, 'gamma' : 0.1, 'subsample': 0.5, 'random_state' : 144,
+                  # 'eval_metric' : 'logloss', 'verbose': 2, 'num_threads':4
+           # }
         # clf = xgb.XGBClassifier(**params)
 
-        clf = LogisticRegression()
+        clf = LogisticRegression(penalty = 'l2', C = 2)
 
         clf.fit(X_train, y_train)
 
@@ -130,7 +122,7 @@ def skfCV_B():
 
         recall.append(recall_score(y_val, preds_01))
 
-    print('Average logloss for B: ', np.average(logloss))
+    print('Average logloss for C: ', np.average(logloss))
     print('log losses for each fold: ', logloss)
     print('average f1: ', np.average(f1))
     print('f1 for each fold: ', f1)
@@ -139,5 +131,6 @@ def skfCV_B():
     return logloss, f1, recall
 
 if __name__ == '__main__':
-    skfCV_B()
+    skfCV_C()
+
 
