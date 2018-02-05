@@ -11,6 +11,8 @@ from NewFeatFuncs import *
 
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+
 import xgboost as xgb
 import lightgbm as lgb
 
@@ -31,14 +33,8 @@ def run_b_model():
     hhold_b_train.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
     hhold_b_test.drop(['ZehDbxxy', 'qNlGOBmo', 'izDpdZxF', 'dsUYhgai'], axis = 1, inplace = True)
     # no seperation between classes
-    hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
-           'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
-           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
-           'IOMvIGQS'], axis = 1, inplace = True)
-    hhold_b_test.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD',
-           'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD',
-           'NBWkerdL','vuQrLzvK','cDhZjxaW', # added 1_17
-           'IOMvIGQS'], axis = 1, inplace = True)
+    hhold_b_train.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD', 'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD', 'NBWkerdL','vuQrLzvK','cDhZjxaW', 'IOMvIGQS'], axis = 1, inplace = True)
+    hhold_b_test.drop(['qrOrXLPM','NjDdhqIe', 'rCVqiShm', 'ldnyeZwD', 'BEyCyEUG', 'VyHofjLM', 'GrLBZowF', 'oszSdLhD', 'NBWkerdL','vuQrLzvK','cDhZjxaW', 'IOMvIGQS'], axis = 1, inplace = True)
 
     # correlated features
     hhold_b_train.drop(['ZvEApWrk'], axis = 1, inplace = True)
@@ -78,18 +74,11 @@ def run_b_model():
     X_test = hhold_b_test.drop('country', axis = 1)
     indiv_X_test = indiv_b_test.drop('country', axis = 1)
 
-    # store cat columns and numerical columns for later use
-    # cat_columns = X_train.select_dtypes(include = ['object']).columns
-    # num_columns = X_train.select_dtypes(include = ['int64', 'float64']).columns
 
     # make new features from the individual sets
     # number of individuals
     X_train = num_indiv(X_train, indiv_X_train)
     X_test = num_indiv(X_test, indiv_X_test)
-
-    # label encode individual train/test set
-    # indiv_X_train, indiv_cat_columns = labelencode_cat(indiv_X_train)
-    # indiv_X_test, indiv_cat_columns = labelencode_cat(indiv_X_test)
 
     ## standardizing remaining columns
     # standardize only the numerical columns
@@ -99,6 +88,7 @@ def run_b_model():
     X_test[num_columns] = standardize(X_test[num_columns])
 
     # concatenate train and test to do the one hot encoding. Train and test don't have the same categorical values so one hot encoding gives different number of features on the different sets
+    num_columns.append('poor')
     new_cats = list(set(X_train.columns.values) - set(num_columns))
     print(new_cats)
     X_train[new_cats] = X_train[new_cats].astype('str')
@@ -111,21 +101,20 @@ def run_b_model():
     print(X_train.head(1))
     X_test = tmp.iloc[X_train.shape[0]:]
 
-    # label encode remaining cat columns. Don't want to redo what was encoded in individual set already
-    # X_train[cat_columns] = X_train[cat_columns].apply(LabelEncoder().fit_transform)
-    # X_test[cat_columns] = X_test[cat_columns].apply(LabelEncoder().fit_transform)
+    # # mean target encoding
+    # for col in ['wJthinfa', 'num_indiv']:
+        # train_means = X_train.groupby(col).poor.mean()
+        # X_train[col] = X_train[col].map(train_means)
+        # X_test[col] = X_test[col].map(train_means)
+
+    # X_train.drop('poor', axis = 1, inplace = True)
+    # print(X_train.head(3))
 
     ### end features
 
-    # params = {'n_estimators':400, 'max_depth':5, 'reg_alpha':0.5, 'reg_lambda': 0.5,
-	   # 'min_child_weight': 1, 'gamma' : 0.1, 'subsample': 0.5, 'random_state' = 144,
-	      # 'eval_metric' : 'logloss', 'verbose': 2
-	   # }
     params = {'n_estimators':400, 'max_depth':3, 'reg_alpha':0, 'reg_lambda':1, 'min_child_weight': 5} # xgb params
     clf = xgb.XGBClassifier(**params)
-    # clf = lgb.LGBMClassifier(n_estimators = 50, objective = 'binary', num_threads = 4, learning_rate = 0.05)
-    # clf = SVC(class_weight = 'balanced', probability = True, random_state = 2)
-    # fit
+
     clf.fit(X_train, y_train)
 
     # predict

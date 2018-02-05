@@ -25,6 +25,9 @@
 # 1_29_v2. Mean of 3 XGBs on A. BC as single XGB LB: 0.22141
 # 2_3_v1. Try get dummies on A, BC as before. LB: 0.1863
 # 2_3_v2. Use get dummies on all countries. Just noticed after dropping all the cats and stuff in B, there is basically one feature left, wJthinfa and then the one I created num_indiv. LB: 0.18400. new lowest score, but only barely better than previous best. people on LB have far lower scores, I wonder if that is due to model tuning or some more feature engineering can be pushed. Num_indiv seems to be a useful feature. See notebook 'num_indiv'
+# 2_4_v1. Trying xgb on A and LR on B and C. Testing CV vs LB score. CV was: 0.29563444812 LB: 0.28205
+# 2_4_v2. Binned num_indiv in C. According to CV, it helps alot. But it doesn't seem to help as much for the other countries. Let's see if LB reflects those improvements. CV: 0.191926945731 LB: 0.1845
+# 2_4_v3. Mean target encoding on all. LB: 0.18570
 
 from A_model import *
 from B_model import *
@@ -38,7 +41,7 @@ from PoverTHelperTools import *
 
 import pandas as pd
 
-SUB_NAME = '2_3_v2.csv'
+SUB_NAME = '2_4_v2.csv'
 
 hhold_a_train, hhold_b_train, hhold_c_train = load_hhold_train()
 hhold_a_test, hhold_b_test, hhold_c_test = load_hhold_test()
