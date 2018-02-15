@@ -13,7 +13,7 @@ from NewFeatFuncs import *
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
 from sklearn.model_selection import cross_val_score, cross_val_predict
-from sklearn.metrics import log_loss, f1_score, recall_score, confusion_matrix, roc_auc_score, precision_score
+from sklearn.metrics import log_loss, f1_score, recall_score, confusion_matrix, roc_auc_score
 
 from sklearn.linear_model import LogisticRegression
 
@@ -64,7 +64,7 @@ def skfCV_B():
 
     logloss = [] # append log loss scores to this array
     f1 = []
-    precision = []
+    recall = []
 
     X = hhold_b_train.drop('country', axis = 1)
     y = hhold_b_train['poor'].values
@@ -84,13 +84,13 @@ def skfCV_B():
     # double check that the index values in the hhold data appear at least once in the individual index (indiv index has many duplicates of id because it is multi index)
     assert any(i in indiv_X_train.index.get_level_values('id').values for i in X_train.index.values)
 
-    # X_resampled = resample_data(X_train, how = 'down')
-    # y_train = X_resampled['poor']
-    # X_train = X_resampled.drop('poor', axis = 1)
-    # X_val.drop('poor', axis = 1, inplace = True)
-
-    X_train.drop('poor', axis = 1, inplace = True)
+    X_resampled = resample_data(X_train, how = 'up')
+    y_train = X_resampled['poor']
+    X_train = X_resampled.drop('poor', axis = 1)
     X_val.drop('poor', axis = 1, inplace = True)
+
+    # X_train.drop('poor', axis = 1, inplace = True)
+    # X_val.drop('poor', axis = 1, inplace = True)
 
     # make new features from indiv data set
     X_train = num_indiv(X_train, indiv_X_train)
@@ -130,7 +130,7 @@ def skfCV_B():
     preds_01 = (preds[:,1] > 0.5)
     f1.append(f1_score(y_val, preds_01))
 
-    precision.append(precision_score(y_val, preds_01))
+    recall.append(recall_score(y_val, preds_01))
 
     print('Confusion Matrix: \n')
     print(confusion_matrix(y_val, preds_01))
@@ -140,13 +140,13 @@ def skfCV_B():
     print('log losses for each fold: ', logloss)
     print('average f1: ', np.average(f1))
     print('f1 for each fold: ', f1)
-    print('average precision: ', np.average(precision))
-    print('precision for each fold: ', precision)
+    print('average recall: ', np.average(recall))
+    print('recall for each fold: ', recall)
 
     print('Predictions: \n')
     print(preds_01)
     print(preds[:,1])
-    return logloss, f1, precision
+    return logloss, f1, recall
 
 if __name__ == '__main__':
     skfCV_B()
