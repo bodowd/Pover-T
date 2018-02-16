@@ -84,7 +84,7 @@ def skfCV_B():
     # double check that the index values in the hhold data appear at least once in the individual index (indiv index has many duplicates of id because it is multi index)
     assert any(i in indiv_X_train.index.get_level_values('id').values for i in X_train.index.values)
 
-    X_resampled = resample_data(X_train, how = 'up')
+    X_resampled = resample_data(X_train, how = 'down')
     y_train = X_resampled['poor']
     X_train = X_resampled.drop('poor', axis = 1)
     X_val.drop('poor', axis = 1, inplace = True)
