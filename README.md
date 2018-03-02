@@ -1,5 +1,8 @@
 This contains codes I used for the Pover-T competition. 
 
+Notebooks contains a jupyter notebook overview of the project
+Scripts contains the models as well as the cross validation scripts
+
 Main takeway:
 
 I was able to improve the log loss 67% from a benchmark Random Forests model.
